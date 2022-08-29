@@ -22,7 +22,6 @@ import com.sigma.auth.repository.RefreshTokenRepository;
 import com.sigma.auth.repository.RoleRepository;
 import com.sigma.auth.repository.UserRepository;
 import com.sigma.auth.security.jwt.JwtUtils;
-import com.sigma.auth.security.services.RefreshTokenService;
 import com.sigma.auth.security.services.UserDetailsImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -57,9 +56,6 @@ public class AuthController {
     JwtUtils jwtUtils;
 
     @Autowired
-    RefreshTokenService refreshTokenService;
-
-    @Autowired
     RefreshTokenRepository refreshTokenRepository;
 
     @PostMapping("/signin")
@@ -72,12 +68,12 @@ public class AuthController {
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        String jwt = jwtUtils.generateJwtToken(userDetails);
+        String jwt = jwtUtils.generateAccessToken(userDetails);
 
         List<String> roles = userDetails.getAuthorities().stream().map(item -> item.getAuthority())
                 .collect(Collectors.toList());
 
-        String refreshToken = refreshTokenService.createRefreshToken(userDetails.getUsername());
+        String refreshToken = jwtUtils.createRefreshToken(userDetails.getUsername());
         RefreshToken refreshToken1 =  new RefreshToken();
         refreshToken1.setToken(refreshToken);
         refreshTokenRepository.save(refreshToken1);
@@ -108,8 +104,8 @@ public class AuthController {
         user.setRoles(roles);
         userRepository.save(user);
 
-        String accessToken = jwtUtils.generateTokenFromUsername(signUpRequest.getUsername());
-        String refreshToken = refreshTokenService.createRefreshToken(signUpRequest.getUsername());
+        String accessToken = jwtUtils.generateAccessTokenFromUsername(signUpRequest.getUsername());
+        String refreshToken = jwtUtils.createRefreshToken(signUpRequest.getUsername());
         RefreshToken refreshToken1 = new RefreshToken();
         refreshToken1.setToken(refreshToken);
         refreshTokenRepository.save(refreshToken1);
@@ -120,16 +116,16 @@ public class AuthController {
     @PostMapping("/refreshToken")
     public ResponseEntity<?> refreshToken (@RequestBody TokenRefreshRequest request) {
         String requestRefreshToken = request.getRefreshToken();
-        String username = refreshTokenService.getUserNameFromRefreshToken(requestRefreshToken);
+        String username = jwtUtils.getUserNameFromRefreshToken(requestRefreshToken);
 
-        if (refreshTokenService.verifyExpiration(requestRefreshToken)) {
+        if (jwtUtils.validateExpiration(requestRefreshToken)) {
 
             if (refreshTokenRepository.existsByToken(requestRefreshToken)){
 
-                String token = jwtUtils.generateTokenFromUsername(username);
+                String token = jwtUtils.generateAccessTokenFromUsername(username);
 
-                refreshTokenService.deleteByRefreshToken(requestRefreshToken);
-                String refreshToken = refreshTokenService.createRefreshToken(username);
+                jwtUtils.deleteByRefreshToken(requestRefreshToken);
+                String refreshToken = jwtUtils.createRefreshToken(username);
                 RefreshToken refreshToken1 = new RefreshToken();
                 refreshToken1.setToken(refreshToken);
                 refreshTokenRepository.save(refreshToken1);
@@ -142,7 +138,7 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logoutUser(@Valid @RequestBody LogOutRequest logOutRequest) {
-        refreshTokenService.deleteByRefreshToken(logOutRequest.getToken());
+        jwtUtils.deleteByRefreshToken(logOutRequest.getToken());
         return ResponseEntity.ok(new MessageResponse("Log out successful!"));
     }
 
