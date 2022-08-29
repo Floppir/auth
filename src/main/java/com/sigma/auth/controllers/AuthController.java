@@ -118,7 +118,7 @@ public class AuthController {
         String requestRefreshToken = request.getRefreshToken();
         String username = jwtUtils.getUserNameFromRefreshToken(requestRefreshToken);
 
-        if (jwtUtils.validateExpiration(requestRefreshToken)) {
+        if (jwtUtils.validateRefreshExpiration(requestRefreshToken)) {
 
             if (refreshTokenRepository.existsByToken(requestRefreshToken)){
 
