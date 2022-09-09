@@ -1,4 +1,4 @@
-package com.sigma.auth.security;
+package com.sigma.auth.config;
 
 import com.sigma.auth.security.jwt.AuthEntryPointJwt;
 import com.sigma.auth.security.jwt.AuthTokenFilter;
@@ -52,13 +52,15 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         return new BCryptPasswordEncoder();
     }
 
+
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.cors().and().csrf().disable()
                 .exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-                .authorizeRequests().antMatchers("/api/auth/**").permitAll()
-                .antMatchers("/api/test/**").permitAll()
+                .authorizeRequests()
+                .antMatchers("/api/test/**","/api/auth/**","/chat/**","/").permitAll()
                 .anyRequest().authenticated();
 
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
